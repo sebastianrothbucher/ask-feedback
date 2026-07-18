@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Ask Feedback</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    fieldset { border: 1px solid #ddd; border-radius: 8px; margin: 1rem 0; padding: 1rem; }
+    legend { font-weight: 600; padding: 0 .25rem; }
+    textarea { width: 100%; min-height: 6rem; font: inherit; box-sizing: border-box; }
+    label.option { display: block; margin: .25rem 0; }
+    button { padding: .5rem 1.25rem; font-size: 1rem; cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    .briefing { white-space: pre-wrap; line-height: 1.4; }
+    .notice { padding: 1rem; background: #f4f4f4; border-radius: 8px; }
+    .done { color: #2a7a2a; font-weight: 600; }
+    [v-cloak] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app" v-scope="app()" v-cloak @vue:mounted="init()">
+    <h1>Feedback</h1>
+
+    <p class="notice" v-if="error">{{ error }}</p>
+
+    <p v-else-if="loading">Loading&hellip;</p>
+
+    <div v-else>
+      <p class="briefing">{{ feedback.briefing }}</p>
+
+      <fieldset v-if="feedback.choiceQuestion">
+        <legend>{{ feedback.choiceQuestion }}</legend>
+        <label class="option" v-for="opt in feedback.choiceOptions">
+          <input type="radio" name="choiceAnswer" :value="opt" v-model="choiceAnswer" :disabled="feedback.finished" />
+          {{ opt }}
+        </label>
+      </fieldset>
+
+      <fieldset v-if="feedback.textQuestion">
+        <legend>{{ feedback.textQuestion }}</legend>
+        <textarea v-model="textAnswer" :disabled="feedback.finished"></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>Your decision</legend>
+        <label class="option">
+          <input type="radio" name="decision" value="ok" v-model="decision" :disabled="feedback.finished" />
+          OK
+        </label>
+        <label class="option">
+          <input type="radio" name="decision" value="reject" v-model="decision" :disabled="feedback.finished" />
+          Reject
+        </label>
+      </fieldset>
+
+      <p v-if="feedback.finished" class="done">Thanks, your answer has been recorded.</p>
+      <p v-if="submitError" class="notice">{{ submitError }}</p>
+
+      <button v-if="!feedback.finished" @click="submit()" :disabled="submitting || !decision">
+        {{ submitting ? 'Submitting…' : 'Submit' }}
+      </button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createApp } from 'https://unpkg.com/petite-vue?module';
+
+    function app() {
+      return {
+        loading: true,
+        error: null,
+        submitError: null,
+        submitting: false,
+        id: null,
+        feedback: null,
+        choiceAnswer: '',
+        textAnswer: '',
+        decision: '',
+
+        async init() {
+          const params = new URLSearchParams(window.location.search);
+          this.id = params.get('id');
+          if (!this.id) {
+            this.error = 'no ID';
+            this.loading = false;
+            return;
+          }
+          await this.fetchFeedback();
+        },
+
+        async fetchFeedback() {
+          this.loading = true;
+          this.error = null;
+          try {
+            const res = await fetch(`${window.ASK_FEEDBACK_CONFIG.apiBaseUrl}/feedback-requests/${encodeURIComponent(this.id)}`, {
+              headers: { 'X-Api-Key': window.ASK_FEEDBACK_CONFIG.apiKey },
+            });
+            if (res.status === 404) {
+              this.error = 'not found';
+              return;
+            }
+            if (!res.ok) {
+              this.error = 'could not load feedback request';
+              return;
+            }
+            const data = await res.json();
+            this.feedback = data;
+            if (data.finished) {
+              this.choiceAnswer = data.choiceAnswer || '';
+              this.textAnswer = data.textAnswer || '';
+              this.decision = data.decision || '';
+            }
+          } catch (e) {
+            this.error = 'could not load feedback request';
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        async submit() {
+          if (!this.decision || this.submitting) return;
+          this.submitting = true;
+          this.submitError = null;
+          try {
+            const res = await fetch(`${window.ASK_FEEDBACK_CONFIG.apiBaseUrl}/feedback-requests/${encodeURIComponent(this.id)}/answer`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Api-Key': window.ASK_FEEDBACK_CONFIG.apiKey },
+              body: JSON.stringify({
+                choiceAnswer: this.choiceAnswer || undefined,
+                textAnswer: this.textAnswer || undefined,
+                decision: this.decision,
+              }),
+            });
+            if (res.status === 409) {
+              this.submitError = 'This feedback request was already answered.';
+              await this.fetchFeedback();
+              return;
+            }
+            if (!res.ok) {
+              this.submitError = 'Could not submit your answer, please try again.';
+              return;
+            }
+            this.feedback.finished = true;
+          } catch (e) {
+            this.submitError = 'Could not submit your answer, please try again.';
+          } finally {
+            this.submitting = false;
+          }
+        },
+      };
+    }
+
+    createApp({ app }).mount('#app');
+  </script>
+</body>
+</html>

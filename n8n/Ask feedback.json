@@ -1,0 +1,202 @@
+{
+  "name": "Ask feedback",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bc42500b-f4f9-4520-a2db-a92f5cce998f",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.2.007:3001/feedback-requests",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "local-dev-key"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"briefing\":\"Please review the new pricing page\",\n  \"choiceQuestion\":\"Do you like it?\",\n  \"choiceOptions\": [\"Yes\",\"No\", \"Maybe\"],\n  \"textQuestion\":\"Any comments?\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "54ec8bec-d93c-4673-9bb6-cc7049777f46",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "5bb31e63-d7ef-4c4c-8d42-f7f56a14e5ac",
+      "name": "Wait",
+      "webhookId": "6dfd9def-9abf-47b4-ae45-716eb597b378"
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3001/feedback-requests/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "local-dev-key"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "276a0143-1f31-4ed5-a03e-8dbf0d0d3aac",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9bdd1188-4827-424f-be5e-8d7092023b37",
+              "leftValue": "={{ $json.finished }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "19bef157-8e9c-44bb-9c34-b05bf06c06f6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log(\"We got it!\")\nreturn []"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -48
+      ],
+      "id": "1b7bb0fe-2199-4c31-87fb-82660ef834b8",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6d24d511-45d9-421a-889a-59dff69a7d5d",
+  "meta": {
+    "instanceId": "3f39ed2681e0ea8f95a8c9849a64eb8a1e37f41c7c8f31facb570c18c6e5e037"
+  },
+  "id": "Mc1GkB857HHAtKbL",
+  "tags": []
+}

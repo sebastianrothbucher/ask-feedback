@@ -1,0 +1,16 @@
+{
+  "name": "ask-feedback",
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "install:all": "npm install --prefix cdk && npm install --prefix test-api && npm install --prefix mcp",
+    "test-api": "npm start --prefix test-api",
+    "client": "npx --yes http-server client -p 5173 -c-1",
+    "mcp": "npm start --prefix mcp",
+    "cdk:test": "npm run test --prefix cdk",
+    "cdk:synth": "npm run synth --prefix cdk",
+    "cdk:diff": "npm run diff --prefix cdk",
+    "cdk:deploy": "npm run deploy --prefix cdk",
+    "cdk:bootstrap": "npm run bootstrap --prefix cdk"
+  }
+}
